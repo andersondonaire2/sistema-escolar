@@ -5,7 +5,7 @@ async function listarNotas(req, res) {
   try {
     const notas = await Nota.findAll({
       include: [{ model: Aluno, as: 'aluno', attributes: ['id', 'nome', 'serie'] }],
-      order: [['createdAt', 'DESC']],
+      order: [['id', 'DESC']],
     });
     res.status(200).json(notas);
   } catch (erro) {

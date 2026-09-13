@@ -14,7 +14,7 @@ Node.js/Express.
 - A Missão 002 foi implementada: cadastro, listagem e relação entre turmas e alunos.
 - A Missão 003 foi introduzida com o módulo de boletim digital: cadastro de notas, consulta por aluno/disciplina e resumo de médias.
 - A Missão 004 foi implementada com o módulo de frequência: registro de presença/ausência, resumo, classificação e ranking.
-- O QA automatizado cobre as Missões 001 a 004 (alunos, turmas, disciplinas, notas e frequências) com 37 testes passando.
+- O QA automatizado cobre as Missões 001 a 004 e autenticação (alunos, turmas, disciplinas, notas, frequências e login) com 42 testes passando.
 - A autenticação das Missões 005/006 foi implementada parcialmente: login admin/professor, JWT e proteção das rotas principais.
 - A Missão 007 foi criada como atividade semanal de auditoria digital.
 - A sincronização usa `DB_SYNC_ALTER` para atualizar tabelas existentes sem apagar registros.
@@ -102,6 +102,7 @@ Node.js/Express.
 - Data: 2026-08-29
 - Ação: Descartadas (via `git restore`) as alterações não commitadas que ampliavam a tela de frequência (chamada por turma/matéria com plano de aula e checkbox de falta), voltando o repositório ao estado limpo do commit `9ad7ee7`. Em seguida, o texto do arquivo `🎯 MISSÃO 005 - OPERAÇÃO ESCOLA SEGURA.txt` foi reescrito com o escopo real da Missão 5: login do professor + tela de chamada exclusiva da disciplina dele, com um checkbox de falta por aula lançada (quando a quantidade de aulas for maior que 1, um checkbox por aula, não apenas um por sessão).
 - Ação: estabilizado o banco local, validado o login admin/professor e adicionada a proteção JWT às rotas da API. Criada a especificação da Missão 007.
+- Validação adicional: helper de QA adaptado para enviar JWT nas rotas protegidas; 42 testes passaram. Corrigida a listagem de notas para ordenar por `id`, pois timestamps estão desativados.
 - Próximo passo: finalizar autorização por perfil/chamada do professor e implementar a auditoria definida na Missão 007.
 
 ## Como atualizar
