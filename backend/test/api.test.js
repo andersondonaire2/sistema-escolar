@@ -372,3 +372,33 @@ test.describe('Módulo FREQUÊNCIAS', () => {
     assert.equal(del.status, 204);
   });
 });
+
+// ---------------------------------------------------------------------------
+// AUTENTICAÇÃO E CONTROLE DE ACESSO
+// ---------------------------------------------------------------------------
+test.describe('Módulo AUTENTICAÇÃO', () => {
+  test('POST /login aceita credenciais válidas e retorna token', async () => {
+    const r = await request('POST', '/login', { email: 'admin@escola.com', senha: '123456' });
+    assert.equal(r.status, 200, JSON.stringify(r.data));
+    assert.ok(r.data.token, 'deve retornar um token JWT');
+    assert.equal(r.data.usuario.email, 'admin@escola.com');
+  });
+
+  test('POST /login rejeita credenciais inválidas (401)', async () => {
+    const r = await request('POST', '/login', { email: 'admin@escola.com', senha: 'errada' });
+    assert.equal(r.status, 401, JSON.stringify(r.data));
+  });
+
+  test('POST /professores/login aceita professor e indica disciplina vinculada', async () => {
+    const r = await request('POST', '/professores/login', { usuario: 'maria', senha: '123456' });
+    assert.equal(r.status, 200, JSON.stringify(r.data));
+    assert.ok(r.data.professor);
+    assert.ok(r.data.professor.disciplina || r.data.professor.disciplina_id !== null);
+  });
+
+  test('GET /professores lista professores cadastrados (200)', async () => {
+    const r = await request('GET', '/professores');
+    assert.equal(r.status, 200, JSON.stringify(r.data));
+    assert.ok(Array.isArray(r.data));
+  });
+});

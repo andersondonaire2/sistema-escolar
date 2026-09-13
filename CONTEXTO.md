@@ -15,7 +15,8 @@ Node.js/Express.
 - A Missão 003 foi introduzida com o módulo de boletim digital: cadastro de notas, consulta por aluno/disciplina e resumo de médias.
 - A Missão 004 foi implementada com o módulo de frequência: registro de presença/ausência, resumo, classificação e ranking.
 - O QA automatizado cobre as Missões 001 a 004 (alunos, turmas, disciplinas, notas e frequências) com 37 testes passando.
-- A Missão 005 (login/controle de acesso) ainda NÃO foi iniciada e não deve ser implementada até o usuário pedir o trabalho nela.
+- A autenticação das Missões 005/006 foi implementada parcialmente: login admin/professor, JWT e proteção das rotas principais.
+- A Missão 007 foi criada como atividade semanal de auditoria digital.
 - A sincronização usa `DB_SYNC_ALTER` para atualizar tabelas existentes sem apagar registros.
 - As listas de alunos, turmas, notas e frequências usam tabela Material UI, busca global e ações de editar/excluir quando relevantes.
 - Existe uma carga SQL de teste em `backend/sql/seed-missao-002.sql` com três turmas e seis alunos.
@@ -49,7 +50,8 @@ Node.js/Express.
 
 - Confirmar visualmente no navegador o fluxo completo da Missão 004 (chamada, resumo e ranking).
 - Resolver pendências anteriores das Missões 002/003 pendentes de verificação no navegador.
-- O arquivo `🎯 MISSÃO 005 - OPERAÇÃO ESCOLA SEGURA.txt` foi reescrito com o conteúdo real da Missão 5: login/controle de acesso do professor + tela de chamada exclusiva da disciplina do professor logado, com um checkbox de falta por aula (não mais um único checkbox por sessão). A implementação da Missão 5 ainda NÃO foi iniciada e só deve começar quando o usuário pedir.
+- A proteção de rotas exige JWT, mas ainda falta finalizar a autorização por perfil e a tela de chamada exclusiva da disciplina do professor.
+- A Missão 007 (`🎯 MISSÃO 007 - OPERAÇÃO AUDITORIA DIGITAL.txt`) está definida, mas o módulo de auditoria ainda não foi implementado.
 - Manter `DB_SYNC_FORCE=false` ao testar dados persistidos.
 - Ajustar o vínculo de alunos por turma com operação de desvínculo e revínculo em fluxo contínuo.
 - Um front de "chamada por turma/matéria" (com plano de aula, quantidade de aulas e checkbox de falta por aluno) foi iniciado em edição, mas as alterações não commitadas foram descartadas via `git restore` a pedido do usuário; o repositório está limpo, alinhado ao commit `9ad7ee7` (Missão 4). Essa evolução da frequência é a base da Missão 5 e fica para retomar quando for pedida.
@@ -61,7 +63,7 @@ Node.js/Express.
 2. Garantir o backend rodando: `npm.cmd run dev` (ou `node src/server.js`) na pasta `backend`; conferir `http://localhost:3000` respondendo.
 3. Rodar a suíte de QA completa: na pasta `backend`, `npm.cmd test` (ou `node --test`). Esperado: 37 testes passando.
 4. Verificar resíduos de testes no banco (`_QA_`/`@qa.com`) e limpar se houver.
-5. Não iniciar a Missão 005 enquanto o usuário não pedir. Validar apenas até a Missão 004.
+5. Finalizar a autorização por perfil e implementar a Missão 007.
 
 ## Histórico de missões
 
@@ -99,7 +101,8 @@ Node.js/Express.
 
 - Data: 2026-08-29
 - Ação: Descartadas (via `git restore`) as alterações não commitadas que ampliavam a tela de frequência (chamada por turma/matéria com plano de aula e checkbox de falta), voltando o repositório ao estado limpo do commit `9ad7ee7`. Em seguida, o texto do arquivo `🎯 MISSÃO 005 - OPERAÇÃO ESCOLA SEGURA.txt` foi reescrito com o escopo real da Missão 5: login do professor + tela de chamada exclusiva da disciplina dele, com um checkbox de falta por aula lançada (quando a quantidade de aulas for maior que 1, um checkbox por aula, não apenas um por sessão).
-- Próximo passo: a implementação da Missão 005 (login/controle de acesso do professor e tela de chamada com checkbox por aula) só deve começar quando o usuário pedir explicitamente. Até lá, não implementar nada além do que já está commitado (Missão 004).
+- Ação: estabilizado o banco local, validado o login admin/professor e adicionada a proteção JWT às rotas da API. Criada a especificação da Missão 007.
+- Próximo passo: finalizar autorização por perfil/chamada do professor e implementar a auditoria definida na Missão 007.
 
 ## Como atualizar
 

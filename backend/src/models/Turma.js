@@ -7,6 +7,6 @@ Turma.init({
   nome: { type: DataTypes.STRING, allowNull: false },
   serie: { type: DataTypes.STRING, allowNull: false },
   ano: { type: DataTypes.INTEGER, allowNull: false },
-}, { sequelize, modelName: 'turma' });
+}, { sequelize, modelName: 'turma', timestamps: false });
 
 export default Turma;

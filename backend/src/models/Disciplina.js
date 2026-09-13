@@ -20,6 +20,7 @@ Disciplina.init({
   sequelize,
   modelName: 'disciplina',
   tableName: 'disciplinas',
+  timestamps: false,
 });
 
 export default Disciplina;

@@ -15,6 +15,6 @@ Aluno.init({
     cpf: { type: DataTypes.STRING(14), unique: true },
     telefone: { type: DataTypes.STRING },
     endereco: { type: DataTypes.TEXT }
-}, { sequelize, modelName: 'aluno' });
+}, { sequelize, modelName: 'aluno', timestamps: false });
 
 export default Aluno;

@@ -32,6 +32,7 @@ Nota.init({
   sequelize,
   modelName: 'nota',
   tableName: 'notas',
+  timestamps: false,
 });
 
 export default Nota;

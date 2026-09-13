@@ -1,8 +1,8 @@
 # Persistema - Sistema Escolar
 
 Sistema didático desenvolvido pelos alunos do 3º ano de Desenvolvimento de
-Sistemas. A Missão 004 introduz o controle de frequência com registro de
-presença/ausência e identificação de alunos com baixa presença.
+Sistemas. O projeto possui cadastro escolar, boletim, frequência e a primeira
+camada de autenticação com JWT.
 
 O histórico de decisões e o estado entre conversas ficam em
 [CONTEXTO.md](CONTEXTO.md).
@@ -18,6 +18,9 @@ O sistema permite:
 - alertar alunos com frequência abaixo de 75%;
 - exibir um ranking das melhores frequências;
 - manter a base das Missões 001, 002 e 003 funcionando no mesmo painel.
+- autenticar administradores por e-mail e professores por usuário;
+- bloquear os módulos da API sem token JWT;
+- manter sessão no frontend com token e usuário no armazenamento local.
 
 ## Como executar
 
@@ -140,15 +143,23 @@ e resumo/ranking de presença.
 - Suíte de QA automatizada cobrindo as Missões 001-004: 37 testes passando (`npm.cmd test` na pasta `backend` com o servidor no ar).
 - Script de teste corrigido em `backend/package.json` (`node --test`) para funcionar no Windows/Node 24.
 
+### Validação da autenticação
+
+- `POST /login` com `admin@escola.com` e `123456`: 200 com JWT.
+- `POST /professores/login` com `maria` e `123456`: 200 com JWT e disciplina vinculada.
+- `GET /alunos` sem token: 401.
+
+## Missão 007: Auditoria Digital
+
+O roteiro semanal está em `🎯 MISSÃO 007 - OPERAÇÃO AUDITORIA DIGITAL.txt`.
+A próxima etapa é registrar logins e alterações de notas/frequências, restringir
+a consulta ao perfil admin e criar os testes de 401, 403 e filtros.
+
 ## Próxima etapa
 
-O QA até a Missão 004 está concluído. A pendência é a verificação visual no navegador
-do fluxo completo (chamada, resumo e ranking). A Missão 005 (login do professor e
-controle de acesso) já tem o texto definido em
-`🎯 MISSÃO 005 - OPERAÇÃO ESCOLA SEGURA.txt`: cada professor faz login e, ao entrar,
-vê a tela de chamada apenas da sua disciplina, com um checkbox de falta para cada
-aula lançada (não apenas um checkbox por sessão). A implementação ainda não foi
-iniciada e só deve começar quando solicitada.
+O QA das Missões 001 a 004 está concluído. A autenticação básica das Missões 005
+e 006 foi validada por chamadas HTTP; ainda falta finalizar autorização por perfil
+e a tela de chamada exclusiva do professor. A Missão 007 prepara a próxima sprint.
 
 ## Guia pedagógico da Missão 003
 

@@ -25,6 +25,7 @@ Frequencia.init({
   sequelize,
   modelName: 'frequencia',
   tableName: 'frequencias',
+  timestamps: false,
 });
 
 export default Frequencia;

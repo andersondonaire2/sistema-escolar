@@ -61,8 +61,10 @@ const initialFrequenciaForm = {
   presente: 'true',
 };
 
-async function buscarJson(url, mensagemPadrao) {
-  const response = await fetch(url);
+async function buscarJson(url, mensagemPadrao, authToken = '') {
+  const response = await fetch(url, {
+    headers: authToken ? { Authorization: `Bearer ${authToken}` } : {},
+  });
   if (!response.ok) {
     let detalhe = '';
     try {
@@ -105,12 +107,20 @@ function App() {
   const [notaMessage, setNotaMessage] = useState('');
   const [frequenciaMessage, setFrequenciaMessage] = useState('');
   const [view, setView] = useState('dashboard');
-  const [loggedIn, setLoggedIn] = useState(false);
+  const [loggedIn, setLoggedIn] = useState(Boolean(localStorage.getItem('escola_token')));
+  const [usuarioLogado, setUsuarioLogado] = useState(() => {
+    try {
+      return JSON.parse(localStorage.getItem('escola_usuario') || 'null');
+    } catch {
+      return null;
+    }
+  });
+  const [token, setToken] = useState(localStorage.getItem('escola_token') || '');
   const [loginForm, setLoginForm] = useState({ usuario: '', senha: '' });
 
   const carregarAlunos = async () => {
     try {
-      setAlunos(await buscarJson('/api/alunos', 'Erro ao carregar alunos. Verifique se o backend está rodando.'));
+      setAlunos(await buscarJson('/api/alunos', 'Erro ao carregar alunos. Verifique se o backend está rodando.', token));
     } catch (error) {
       console.error(error);
     }
@@ -118,7 +128,7 @@ function App() {
 
   const carregarTurmas = async () => {
     try {
-      setTurmas(await buscarJson('/api/turmas', 'Erro ao carregar turmas. Verifique se o backend está rodando.'));
+      setTurmas(await buscarJson('/api/turmas', 'Erro ao carregar turmas. Verifique se o backend está rodando.', token));
     } catch (error) {
       setTurmaMessage(error.message);
     }
@@ -126,7 +136,7 @@ function App() {
 
   const carregarNotas = async () => {
     try {
-      setNotas(await buscarJson('/api/notas', 'Erro ao carregar notas. Verifique se o backend está rodando.'));
+      setNotas(await buscarJson('/api/notas', 'Erro ao carregar notas. Verifique se o backend está rodando.', token));
     } catch (error) {
       setNotaMessage(error.message);
     }
@@ -134,7 +144,7 @@ function App() {
 
   const carregarDisciplinas = async () => {
     try {
-      setDisciplinas(await buscarJson('/api/disciplinas', 'Erro ao carregar disciplinas. Verifique se o backend está rodando.'));
+      setDisciplinas(await buscarJson('/api/disciplinas', 'Erro ao carregar disciplinas. Verifique se o backend está rodando.', token));
     } catch (error) {
       setNotaMessage(error.message);
     }
@@ -142,7 +152,7 @@ function App() {
 
   const carregarFrequencias = async () => {
     try {
-      setFrequencias(await buscarJson('/api/frequencias', 'Erro ao carregar frequências. Verifique se o backend está rodando.'));
+      setFrequencias(await buscarJson('/api/frequencias', 'Erro ao carregar frequências. Verifique se o backend está rodando.', token));
     } catch (error) {
       setFrequenciaMessage(error.message);
     }
@@ -150,7 +160,7 @@ function App() {
 
   const carregarResumoFrequencia = async () => {
     try {
-      setResumoFrequencia(await buscarJson('/api/frequencias/resumo', 'Erro ao carregar resumo de frequência.'));
+      setResumoFrequencia(await buscarJson('/api/frequencias/resumo', 'Erro ao carregar resumo de frequência.', token));
     } catch (error) {
       setFrequenciaMessage(error.message);
     }
@@ -158,7 +168,7 @@ function App() {
 
   const carregarRankingFrequencia = async () => {
     try {
-      setRankingFrequencia(await buscarJson('/api/frequencias/ranking', 'Erro ao carregar ranking de frequência.'));
+      setRankingFrequencia(await buscarJson('/api/frequencias/ranking', 'Erro ao carregar ranking de frequência.', token));
     } catch (error) {
       setFrequenciaMessage(error.message);
     }
@@ -184,9 +194,35 @@ function App() {
     setLoginForm({ ...loginForm, [name]: value });
   };
 
-  const handleLoginSubmit = (event) => {
+  const handleLoginSubmit = async (event) => {
     event.preventDefault();
-    if (loginForm.usuario && loginForm.senha) {
+    if (!loginForm.usuario || !loginForm.senha) {
+      return;
+    }
+
+    try {
+      const payload = loginForm.usuario.includes('@')
+        ? { email: loginForm.usuario, senha: loginForm.senha }
+        : { usuario: loginForm.usuario, senha: loginForm.senha };
+      const route = loginForm.usuario.includes('@') ? '/api/login' : '/api/professores/login';
+
+      const response = await fetch(route, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+      });
+
+      const data = await response.json();
+      if (!response.ok) {
+        throw new Error(data.erro || 'Credenciais inválidas.');
+      }
+
+      const usuario = data.usuario || data.professor || null;
+      const tokenRecebido = data.token || '';
+      localStorage.setItem('escola_token', tokenRecebido);
+      localStorage.setItem('escola_usuario', JSON.stringify(usuario));
+      setToken(tokenRecebido);
+      setUsuarioLogado(usuario);
       setLoggedIn(true);
       setTurmaMessage('');
       setNotaMessage('');
@@ -198,6 +234,10 @@ function App() {
       carregarFrequencias();
       carregarResumoFrequencia();
       carregarRankingFrequencia();
+    } catch (error) {
+      setTurmaMessage(error.message);
+      setNotaMessage(error.message);
+      setFrequenciaMessage(error.message);
     }
   };
 
@@ -590,7 +630,7 @@ function App() {
                 Sistema Escolar
               </Typography>
               <Typography color="text.secondary">
-                Acesso provisório ao painel administrativo.
+                Acesso seguro ao painel administrativo da escola.
               </Typography>
             </Box>
 
@@ -598,7 +638,7 @@ function App() {
               <Stack spacing={2}>
                 <TextField
                   fullWidth
-                  label="Usuário"
+                  label="Usuário ou e-mail"
                   name="usuario"
                   value={loginForm.usuario}
                   onChange={handleLoginChange}
@@ -639,7 +679,17 @@ function App() {
                 Gestão administrativa e cadastro de estudantes.
               </Typography>
             </Box>
-            <Button type="button" variant="outlined" onClick={() => setLoggedIn(false)}>
+            <Button
+              type="button"
+              variant="outlined"
+              onClick={() => {
+                localStorage.removeItem('escola_token');
+                localStorage.removeItem('escola_usuario');
+                setToken('');
+                setUsuarioLogado(null);
+                setLoggedIn(false);
+              }}
+            >
               Sair
             </Button>
           </Box>

@@ -6,6 +6,9 @@ import Turma from './models/Turma.js';
 import Disciplina from './models/Disciplina.js';
 import Nota from './models/Nota.js';
 import Frequencia from './models/Frequencia.js';
+import Usuario from './models/Usuario.js';
+import Professor from './models/Professor.js';
+import authController from './controllers/authController.js';
 import routes from './routes/index.js';
 
 const app = express();
@@ -41,8 +44,11 @@ async function connectDatabaseWithRetry() {
       await sequelize.authenticate();
       console.log('Conexao com o banco de dados estabelecida com sucesso!');
 
+      await sequelize.query("SET SESSION sql_mode = REPLACE(REPLACE(@@sql_mode, 'NO_ZERO_DATE', ''), 'NO_ZERO_IN_DATE', '')");
       await sequelize.sync({ force: DB_SYNC_FORCE, alter: DB_SYNC_ALTER });
       console.log('Banco de dados sincronizado com sucesso!');
+      await authController.criarProfessorPadrao();
+      console.log('Credenciais padrão inicializadas com sucesso!');
       return;
     } catch (error) {
       console.error('Falha ao conectar no banco. Nova tentativa em alguns segundos.');
