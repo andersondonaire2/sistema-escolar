@@ -45,6 +45,11 @@ async function connectDatabaseWithRetry() {
       console.log('Conexao com o banco de dados estabelecida com sucesso!');
 
       await sequelize.query("SET SESSION sql_mode = REPLACE(REPLACE(@@sql_mode, 'NO_ZERO_DATE', ''), 'NO_ZERO_IN_DATE', '')");
+      try {
+        await sequelize.query('ALTER TABLE frequencias DROP INDEX uq_frequencias_aluno_data');
+      } catch {
+        // O indice antigo pode nao existir em bancos novos.
+      }
       await sequelize.sync({ force: DB_SYNC_FORCE, alter: DB_SYNC_ALTER });
       console.log('Banco de dados sincronizado com sucesso!');
       await authController.criarProfessorPadrao();

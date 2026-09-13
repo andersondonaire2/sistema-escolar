@@ -1,6 +1,8 @@
 import { Op } from 'sequelize';
 import Frequencia from '../models/Frequencia.js';
 import Aluno from '../models/Aluno.js';
+import Disciplina from '../models/Disciplina.js';
+import Professor from '../models/Professor.js';
 
 async function listarFrequencias(req, res) {
   try {
@@ -11,6 +13,55 @@ async function listarFrequencias(req, res) {
     res.status(200).json(frequencias);
   } catch (erro) {
     res.status(500).json({ erro: `Erro ao listar frequências: ${erro.message}` });
+  }
+}
+
+async function cadastrarChamada(req, res) {
+  const { disciplina_id, plano_aula, data_aula, quantidade_aulas, faltas = [] } = req.body;
+  const quantidade = Number(quantidade_aulas);
+
+  if (!disciplina_id || !data_aula || !Number.isInteger(quantidade) || quantidade < 1 || quantidade > 10) {
+    return res.status(400).json({ erro: 'Disciplina, data e quantidade de aulas válida são obrigatórias.' });
+  }
+
+  try {
+    const disciplina = await Disciplina.findByPk(Number(disciplina_id));
+    if (!disciplina) return res.status(404).json({ erro: 'Disciplina não encontrada.' });
+
+    if (req.usuario?.perfil === 'professor') {
+      const professor = await Professor.findByPk(req.usuario.id);
+      if (!professor || Number(professor.disciplina_id) !== Number(disciplina.id)) {
+        return res.status(403).json({ erro: 'Você só pode lançar chamada da sua disciplina.' });
+      }
+    }
+
+    const alunos = await Aluno.findAll({ where: { turma_id: disciplina.turma_id } });
+    if (!alunos.length) return res.status(400).json({ erro: 'A turma desta disciplina não possui alunos.' });
+
+    const faltasPorAluno = new Map(faltas.map((item) => [Number(item.aluno_id), new Set(item.aulas || [])]));
+    const registros = [];
+    for (const aluno of alunos) {
+      const aulasComFalta = faltasPorAluno.get(Number(aluno.id)) || new Set();
+      for (let numeroAula = 1; numeroAula <= quantidade; numeroAula += 1) {
+        registros.push({
+          aluno_id: aluno.id,
+          disciplina_id: disciplina.id,
+          data_aula,
+          plano_aula: plano_aula?.trim() || null,
+          quantidade_aulas: quantidade,
+          numero_aula: numeroAula,
+          presente: !aulasComFalta.has(numeroAula),
+        });
+      }
+    }
+
+    await Frequencia.bulkCreate(registros);
+    return res.status(201).json({ disciplina, quantidade_aulas: quantidade, registros: registros.length });
+  } catch (erro) {
+    if (erro.name === 'SequelizeUniqueConstraintError') {
+      return res.status(409).json({ erro: 'Já existe uma chamada para algum aluno, data e aula informados.' });
+    }
+    return res.status(400).json({ erro: `Erro ao salvar chamada: ${erro.message}` });
   }
 }
 
@@ -180,6 +231,7 @@ async function rankingFrequencia(req, res) {
 export default {
   listarFrequencias,
   cadastrarFrequencia,
+  cadastrarChamada,
   editarFrequencia,
   excluirFrequencia,
   resumoFrequencia,
