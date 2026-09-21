@@ -17,7 +17,7 @@ Node.js/Express.
 - O QA automatizado cobre as Missões 001 a 004 e autenticação (alunos, turmas, disciplinas, notas, frequências e login) com 42 testes passando.
 - A autenticação das Missões 005/006 foi implementada parcialmente: login admin/professor, JWT e proteção das rotas principais.
 - A Missão 007 foi implementada com auditoria digital, consulta restrita a admin e tela de filtros.
-- A Missão 008 foi criada como próxima atividade semanal de indicadores e alertas de segurança.
+- A Missão 008 foi redefinida como próxima atividade semanal de acesso do aluno.
 - A suíte de QA agora cobre 46 testes, incluindo autenticação e auditoria.
 - A sincronização usa `DB_SYNC_ALTER` para atualizar tabelas existentes sem apagar registros.
 - As listas de alunos, turmas, notas e frequências usam tabela Material UI, busca global e ações de editar/excluir quando relevantes.
@@ -35,6 +35,7 @@ Node.js/Express.
 - Módulo de boletim: `backend/src/routes/boletim/`, `backend/src/controllers/notaController.js` e `backend/src/models/Nota.js`
 - Módulo de frequência: `backend/src/routes/frequencias/`, `backend/src/controllers/frequenciaController.js` e `backend/src/models/Frequencia.js`
 - Módulo de auditoria: `backend/src/routes/auditoria/`, `backend/src/controllers/auditoriaController.js` e `backend/src/models/Auditoria.js`
+- Próximo módulo: portal do aluno com login próprio, notas e frequência em modo somente leitura.
 - Frontend: `frontend/src/App.jsx` e `frontend/src/styles.css`
 
 ## Decisões importantes
@@ -56,7 +57,7 @@ Node.js/Express.
 - Resolver pendências anteriores das Missões 002/003 pendentes de verificação no navegador.
 - A proteção de rotas exige JWT, mas ainda falta finalizar a autorização por perfil e a tela de chamada exclusiva da disciplina do professor.
 - A tela de frequência foi convertida em chamada: matéria do professor logado, plano de aula, data, aulas consecutivas e checkboxes de falta por aluno/aula.
-- A Missão 007 foi concluída; a Missão 008 (`🎯 MISSÃO 008 - OPERAÇÃO PAINEL DE CONFIANÇA.txt`) aguarda implementação.
+- A Missão 007 foi concluída; a Missão 008 (`🎯 MISSÃO 008 - OPERAÇÃO ACESSO DO ALUNO.txt`) aguarda implementação.
 - Manter `DB_SYNC_FORCE=false` ao testar dados persistidos.
 - Ajustar o vínculo de alunos por turma com operação de desvínculo e revínculo em fluxo contínuo.
 - Um front de "chamada por turma/matéria" (com plano de aula, quantidade de aulas e checkbox de falta por aluno) foi iniciado em edição, mas as alterações não commitadas foram descartadas via `git restore` a pedido do usuário; o repositório está limpo, alinhado ao commit `9ad7ee7` (Missão 4). Essa evolução da frequência é a base da Missão 5 e fica para retomar quando for pedida.
@@ -68,7 +69,7 @@ Node.js/Express.
 2. Garantir o backend rodando: `npm.cmd run dev` (ou `node src/server.js`) na pasta `backend`; conferir `http://localhost:3000` respondendo.
 3. Rodar a suíte de QA completa: na pasta `backend`, `npm.cmd test` (ou `node --test`). Esperado: 46 testes passando.
 4. Verificar resíduos de testes no banco (`_QA_`/`@qa.com`) e limpar se houver.
-5. Implementar os indicadores, últimos acessos e alertas definidos na Missão 008.
+5. Implementar o login do aluno e o portal protegido de notas e frequência definidos na Missão 008.
 
 ## Histórico de missões
 
@@ -112,6 +113,8 @@ Node.js/Express.
 
 ## Última atualização
 
+- Data: 2026-09-21
+- Ação: redefinida a Missão 008 para especificar login do aluno e consulta protegida das próprias notas e frequência; nenhuma implementação foi realizada.
 - Data: 2026-08-29
 - Ação: Descartadas (via `git restore`) as alterações não commitadas que ampliavam a tela de frequência (chamada por turma/matéria com plano de aula e checkbox de falta), voltando o repositório ao estado limpo do commit `9ad7ee7`. Em seguida, o texto do arquivo `🎯 MISSÃO 005 - OPERAÇÃO ESCOLA SEGURA.txt` foi reescrito com o escopo real da Missão 5: login do professor + tela de chamada exclusiva da disciplina dele, com um checkbox de falta por aula lançada (quando a quantidade de aulas for maior que 1, um checkbox por aula, não apenas um por sessão).
 - Ação: estabilizado o banco local, validado o login admin/professor e adicionada a proteção JWT às rotas da API. Criada a especificação da Missão 007.
@@ -119,7 +122,7 @@ Node.js/Express.
 - Corrigido o fluxo do frontend: erros de login agora aparecem na tela, tokens expirados são invalidados e o carregamento do painel aguarda o token recém-recebido. Build do frontend e testes HTTP de autenticação validados.
 - Criado e executado `backend/sql/seed-demo.js`: 3 turmas demo, 30 alunos, 9 disciplinas, 9 professores, 180 notas e 150 frequências. Segunda execução confirmou idempotência; login `demo_prof_1` validado.
 - Implementada a chamada em lote em `/frequencias/chamada`; validação confirmou 20 registros para 10 alunos em 2 aulas e 3 faltas selecionadas. Suíte backend: 42 testes passando; build frontend concluído.
-- Próximo passo: implementar os indicadores, últimos acessos e alertas definidos na Missão 008.
+- Próximo passo: decidir a modelagem das credenciais do aluno e implementar o login/portal somente leitura da Missão 008.
 
 ## Como atualizar
 

@@ -21,7 +21,7 @@ A Missão 7 adicionou:
 - garantia de que senha e token não são armazenados nos eventos.
 
 A próxima sprint é a Missão 8, descrita em
-[🎯 MISSÃO 008 - OPERAÇÃO PAINEL DE CONFIANÇA.txt](🎯%20MISSÃO%20008%20-%20OPERAÇÃO%20PAINEL%20DE%20CONFIANÇA.txt).
+[🎯 MISSÃO 008 - OPERAÇÃO ACESSO DO ALUNO.txt](🎯%20MISSÃO%20008%20-%20OPERAÇÃO%20ACESSO%20DO%20ALUNO.txt).
 
 ## Como executar
 
@@ -92,6 +92,7 @@ senha `123456`.
 
 ## Próxima missão
 
-Implementar o painel de confiança da Missão 8: indicadores por operação,
-últimos acessos e alertas de tentativas recusadas, sempre com acesso exclusivo
-ao perfil admin.
+Implementar o portal da Missão 8: login do aluno e consulta somente leitura das
+próprias notas e frequência, com autorização baseada no `aluno_id` do token.
+As rotas de aluno ainda são apenas propostas no arquivo da missão e não estão
+disponíveis nesta versão.
