@@ -4,6 +4,7 @@ import {
   Box,
   Button,
   Chip,
+  Checkbox,
   Container,
   Grid,
   MenuItem,
@@ -56,9 +57,11 @@ const initialDisciplinaForm = {
 };
 
 const initialFrequenciaForm = {
-  aluno_id: '',
+  disciplina_id: '',
+  plano_aula: '',
   data_aula: new Date().toISOString().slice(0, 10),
-  presente: 'true',
+  quantidade_aulas: '1',
+  faltas: {},
 };
 
 async function buscarJson(url, mensagemPadrao, authToken = '') {
@@ -85,6 +88,7 @@ function App() {
   const [disciplinas, setDisciplinas] = useState([]);
   const [notas, setNotas] = useState([]);
   const [frequencias, setFrequencias] = useState([]);
+  const [auditoria, setAuditoria] = useState([]);
   const [resumoFrequencia, setResumoFrequencia] = useState([]);
   const [rankingFrequencia, setRankingFrequencia] = useState([]);
   const [turmaForm, setTurmaForm] = useState(initialTurmaForm);
@@ -97,6 +101,10 @@ function App() {
   const [disciplinaBusca, setDisciplinaBusca] = useState('');
   const [notaBusca, setNotaBusca] = useState('');
   const [frequenciaBusca, setFrequenciaBusca] = useState('');
+  const [auditoriaBusca, setAuditoriaBusca] = useState('');
+  const [auditoriaOperacao, setAuditoriaOperacao] = useState('');
+  const [auditoriaInicio, setAuditoriaInicio] = useState('');
+  const [auditoriaFim, setAuditoriaFim] = useState('');
   const [alunoEmEdicao, setAlunoEmEdicao] = useState(null);
   const [turmaEmEdicao, setTurmaEmEdicao] = useState(null);
   const [disciplinaEmEdicao, setDisciplinaEmEdicao] = useState(null);
@@ -106,6 +114,8 @@ function App() {
   const [turmaMessage, setTurmaMessage] = useState('');
   const [notaMessage, setNotaMessage] = useState('');
   const [frequenciaMessage, setFrequenciaMessage] = useState('');
+  const [auditoriaMessage, setAuditoriaMessage] = useState('');
+  const [loginError, setLoginError] = useState('');
   const [view, setView] = useState('dashboard');
   const [loggedIn, setLoggedIn] = useState(Boolean(localStorage.getItem('escola_token')));
   const [usuarioLogado, setUsuarioLogado] = useState(() => {
@@ -174,15 +184,44 @@ function App() {
     }
   };
 
+  const carregarAuditoria = async () => {
+    if (usuarioLogado?.perfil !== 'admin') return;
+    const params = new URLSearchParams();
+    if (auditoriaBusca) params.set('usuario', auditoriaBusca);
+    if (auditoriaOperacao) params.set('operacao', auditoriaOperacao);
+    if (auditoriaInicio) params.set('inicio', auditoriaInicio);
+    if (auditoriaFim) params.set('fim', auditoriaFim);
+    try {
+      setAuditoria(await buscarJson(`/api/auditoria?${params.toString()}`, 'Erro ao carregar auditoria.', token));
+      setAuditoriaMessage('');
+    } catch (error) {
+      setAuditoriaMessage(error.message);
+    }
+  };
+
   useEffect(() => {
-    carregarAlunos();
-    carregarTurmas();
-    carregarDisciplinas();
-    carregarNotas();
-    carregarFrequencias();
-    carregarResumoFrequencia();
-    carregarRankingFrequencia();
-  }, []);
+    if (!token) return;
+
+    buscarJson('/api/alunos', 'Sessão expirada. Faça login novamente.', token)
+      .then(() => {
+        carregarAlunos();
+        carregarTurmas();
+        carregarDisciplinas();
+        carregarNotas();
+        carregarFrequencias();
+        carregarResumoFrequencia();
+        carregarRankingFrequencia();
+        if (usuarioLogado?.perfil === 'admin') carregarAuditoria();
+      })
+      .catch((error) => {
+        localStorage.removeItem('escola_token');
+        localStorage.removeItem('escola_usuario');
+        setToken('');
+        setUsuarioLogado(null);
+        setLoggedIn(false);
+        setLoginError(error.message);
+      });
+  }, [loggedIn, token]);
 
   const handleChange = (event) => {
     const { name, value } = event.target;
@@ -197,10 +236,12 @@ function App() {
   const handleLoginSubmit = async (event) => {
     event.preventDefault();
     if (!loginForm.usuario || !loginForm.senha) {
+      setLoginError('Informe usuário/e-mail e senha.');
       return;
     }
 
     try {
+      setLoginError('');
       const payload = loginForm.usuario.includes('@')
         ? { email: loginForm.usuario, senha: loginForm.senha }
         : { usuario: loginForm.usuario, senha: loginForm.senha };
@@ -227,14 +268,8 @@ function App() {
       setTurmaMessage('');
       setNotaMessage('');
       setFrequenciaMessage('');
-      carregarAlunos();
-      carregarTurmas();
-      carregarDisciplinas();
-      carregarNotas();
-      carregarFrequencias();
-      carregarResumoFrequencia();
-      carregarRankingFrequencia();
     } catch (error) {
+      setLoginError(error.message);
       setTurmaMessage(error.message);
       setNotaMessage(error.message);
       setFrequenciaMessage(error.message);
@@ -259,6 +294,17 @@ function App() {
   const handleFrequenciaChange = (event) => {
     const { name, value } = event.target;
     setFrequenciaForm({ ...frequenciaForm, [name]: value });
+  };
+
+  const alternarFalta = (alunoId, numeroAula) => {
+    const faltasAluno = frequenciaForm.faltas[alunoId] || [];
+    const novaLista = faltasAluno.includes(numeroAula)
+      ? faltasAluno.filter((item) => item !== numeroAula)
+      : [...faltasAluno, numeroAula];
+    setFrequenciaForm({
+      ...frequenciaForm,
+      faltas: { ...frequenciaForm.faltas, [alunoId]: novaLista },
+    });
   };
 
   const handleDisciplinaSubmit = async (event) => {
@@ -320,13 +366,26 @@ function App() {
     event.preventDefault();
 
     try {
-      const response = await fetch(frequenciaEmEdicao ? `/api/frequencias/${frequenciaEmEdicao}` : '/api/frequencias', {
-        method: frequenciaEmEdicao ? 'PUT' : 'POST',
-        headers: { 'Content-Type': 'application/json' },
+      const disciplinaId = usuarioLogado?.perfil === 'professor'
+        ? usuarioLogado.disciplina_id
+        : frequenciaForm.disciplina_id;
+      if (!disciplinaId) throw new Error('Selecione uma disciplina para fazer a chamada.');
+
+      const response = await fetch('/api/frequencias/chamada', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`,
+        },
         body: JSON.stringify({
-          aluno_id: Number(frequenciaForm.aluno_id),
+          disciplina_id: Number(disciplinaId),
+          plano_aula: frequenciaForm.plano_aula,
           data_aula: frequenciaForm.data_aula,
-          presente: frequenciaForm.presente === 'true',
+          quantidade_aulas: Number(frequenciaForm.quantidade_aulas),
+          faltas: Object.entries(frequenciaForm.faltas).map(([aluno_id, aulas]) => ({
+            aluno_id: Number(aluno_id),
+            aulas,
+          })),
         }),
       });
 
@@ -335,7 +394,7 @@ function App() {
         throw new Error(error.erro || 'Erro ao registrar frequência');
       }
 
-      setFrequenciaMessage(frequenciaEmEdicao ? 'Frequência atualizada com sucesso!' : 'Frequência registrada com sucesso!');
+      setFrequenciaMessage('Chamada registrada com sucesso!');
       setFrequenciaForm(initialFrequenciaForm);
       setFrequenciaEmEdicao(null);
       carregarFrequencias();
@@ -358,7 +417,10 @@ function App() {
 
   const excluirFrequencia = async (frequencia) => {
     if (!window.confirm(`Excluir o registro de frequência de ${frequencia.aluno?.nome || 'este aluno'}?`)) return;
-    const response = await fetch(`/api/frequencias/${frequencia.id}`, { method: 'DELETE' });
+    const response = await fetch(`/api/frequencias/${frequencia.id}`, {
+      method: 'DELETE',
+      headers: { Authorization: `Bearer ${token}` },
+    });
     if (!response.ok) {
       setFrequenciaMessage('Não foi possível excluir o registro de frequência.');
       return;
@@ -567,11 +629,21 @@ function App() {
     return `${alunoNome} ${frequencia.data_aula}`.toLowerCase().includes(frequenciaBusca.toLowerCase());
   });
 
+  const disciplinaDaChamada = disciplinas.find((disciplina) => Number(disciplina.id) === Number(
+    usuarioLogado?.perfil === 'professor' ? usuarioLogado.disciplina_id : frequenciaForm.disciplina_id
+  ));
+  const alunosDaChamada = alunos.filter((aluno) => (
+    disciplinaDaChamada && Number(aluno.turma_id) === Number(disciplinaDaChamada.turma_id)
+  ));
+  const quantidadeAulasChamada = Math.max(1, Math.min(10, Number(frequenciaForm.quantidade_aulas) || 1));
+
   const formatarData = (data) => {
     if (!data) return '—';
     const [ano, mes, dia] = String(data).slice(0, 10).split('-');
     return `${dia}/${mes}/${ano}`;
   };
+
+  const formatarDataHora = (data) => data ? new Date(data).toLocaleString('pt-BR') : '—';
 
   const resumoBoletim = alunos.map((aluno) => {
     const notasAluno = notas.filter((nota) => Number(nota.aluno_id) === Number(aluno.id));
@@ -657,6 +729,8 @@ function App() {
               </Stack>
             </form>
 
+            {loginError && <Alert severity="error" sx={{ width: '100%' }}>{loginError}</Alert>}
+
             <Typography variant="body2" color="text.secondary" textAlign="center">
               Acesso provisório ao sistema. Preencha usuário e senha para entrar.
             </Typography>
@@ -695,7 +769,7 @@ function App() {
           </Box>
 
           <Grid container spacing={2}>
-            {menuItems.map((item) => (
+            {menuItems.concat(usuarioLogado?.perfil === 'admin' ? [{ key: 'auditoria', label: 'Auditoria', description: 'Rastreamento de operações' }] : []).map((item) => (
               <Grid item xs={12} sm={6} md={4} key={item.key}>
                 <Button
                   type="button"
@@ -715,7 +789,52 @@ function App() {
             ))}
           </Grid>
 
-          {view === 'boletim' ? (
+          {view === 'auditoria' ? (
+            <Box>
+              <Typography variant="h5" fontWeight={600} sx={{ mb: 2 }}>Auditoria digital</Typography>
+              {auditoriaMessage && <Alert severity="error" sx={{ mb: 2 }}>{auditoriaMessage}</Alert>}
+              <Paper variant="outlined" sx={{ p: 2, mb: 3 }}>
+                <Grid container spacing={2} alignItems="center">
+                  <Grid item xs={12} md={4}>
+                    <TextField fullWidth size="small" label="Buscar por usuário" value={auditoriaBusca} onChange={(event) => setAuditoriaBusca(event.target.value)} />
+                  </Grid>
+                  <Grid item xs={12} sm={6} md={2}>
+                    <TextField select fullWidth size="small" label="Operação" value={auditoriaOperacao} onChange={(event) => setAuditoriaOperacao(event.target.value)}>
+                      <MenuItem value="">Todas</MenuItem>
+                      <MenuItem value="LOGIN_SUCESSO">Login aceito</MenuItem>
+                      <MenuItem value="LOGIN_RECUSADO">Login recusado</MenuItem>
+                      <MenuItem value="CRIACAO">Criação</MenuItem>
+                      <MenuItem value="EDICAO">Edição</MenuItem>
+                      <MenuItem value="EXCLUSAO">Exclusão</MenuItem>
+                    </TextField>
+                  </Grid>
+                  <Grid item xs={12} sm={6} md={2}>
+                    <TextField fullWidth size="small" type="date" label="De" value={auditoriaInicio} onChange={(event) => setAuditoriaInicio(event.target.value)} InputLabelProps={{ shrink: true }} />
+                  </Grid>
+                  <Grid item xs={12} sm={6} md={2}>
+                    <TextField fullWidth size="small" type="date" label="Até" value={auditoriaFim} onChange={(event) => setAuditoriaFim(event.target.value)} InputLabelProps={{ shrink: true }} />
+                  </Grid>
+                  <Grid item xs={12} sm={6} md={2}>
+                    <Button fullWidth variant="contained" onClick={carregarAuditoria}>Filtrar</Button>
+                  </Grid>
+                </Grid>
+              </Paper>
+              <Paper variant="outlined" sx={{ p: 2 }}>
+                {auditoria.length === 0 ? <Typography color="text.secondary">Nenhum registro de auditoria encontrado.</Typography> : (
+                  <TableContainer>
+                    <Table size="small">
+                      <TableHead><TableRow><TableCell>Data/hora</TableCell><TableCell>Usuário</TableCell><TableCell>Perfil</TableCell><TableCell>Operação</TableCell><TableCell>Recurso</TableCell><TableCell>ID</TableCell></TableRow></TableHead>
+                      <TableBody>{auditoria.map((evento) => (
+                        <TableRow key={evento.id} hover>
+                          <TableCell>{formatarDataHora(evento.criado_em)}</TableCell><TableCell>{evento.usuario_nome}</TableCell><TableCell>{evento.perfil}</TableCell><TableCell>{evento.operacao}</TableCell><TableCell>{evento.recurso}</TableCell><TableCell>{evento.recurso_id || '—'}</TableCell>
+                        </TableRow>
+                      ))}</TableBody>
+                    </Table>
+                  </TableContainer>
+                )}
+              </Paper>
+            </Box>
+          ) : view === 'boletim' ? (
             <Box>
               <Typography variant="h5" fontWeight={600} sx={{ mb: 2 }}>
                 Boletim digital
@@ -1186,29 +1305,73 @@ function App() {
               )}
 
               <Paper variant="outlined" sx={{ p: 3, borderRadius: 3, mb: 3 }}>
-                <Typography variant="h6" sx={{ mb: 2 }}>Registrar Frequência</Typography>
+                <Typography variant="h6" sx={{ mb: 2 }}>Fazer chamada</Typography>
                 <form onSubmit={handleFrequenciaSubmit}>
                   <Grid container spacing={2}>
-                    <Grid item xs={12} md={4}>
-                      <TextField select fullWidth label="Aluno" name="aluno_id" value={frequenciaForm.aluno_id} onChange={handleFrequenciaChange} required>
-                        {alunos.map((aluno) => (
-                          <MenuItem key={aluno.id} value={aluno.id}>{aluno.nome}</MenuItem>
-                        ))}
-                      </TextField>
+                    <Grid item xs={12} md={6}>
+                      {usuarioLogado?.perfil === 'professor' ? (
+                        <TextField fullWidth label="Matéria do professor" value={disciplinaDaChamada?.nome || 'Carregando matéria...'} InputProps={{ readOnly: true }} />
+                      ) : (
+                        <TextField select fullWidth label="Matéria" name="disciplina_id" value={frequenciaForm.disciplina_id} onChange={handleFrequenciaChange} required>
+                          {disciplinas.map((disciplina) => (
+                            <MenuItem key={disciplina.id} value={disciplina.id}>{disciplina.nome}</MenuItem>
+                          ))}
+                        </TextField>
+                      )}
                     </Grid>
-                    <Grid item xs={12} md={4}>
-                      <TextField fullWidth label="Data" name="data_aula" type="date" value={frequenciaForm.data_aula} onChange={handleFrequenciaChange} InputLabelProps={{ shrink: true }} required />
+                    <Grid item xs={12} md={6}>
+                      <TextField fullWidth label="Plano de aula" name="plano_aula" value={frequenciaForm.plano_aula} onChange={handleFrequenciaChange} placeholder="Ex.: Revisão de equações" />
                     </Grid>
-                    <Grid item xs={12} md={4}>
-                      <TextField select fullWidth label="Presença" name="presente" value={frequenciaForm.presente} onChange={handleFrequenciaChange} required>
-                        <MenuItem value="true">Presente</MenuItem>
-                        <MenuItem value="false">Ausente</MenuItem>
+                    <Grid item xs={12} sm={6} md={4}>
+                      <TextField fullWidth label="Data da aula" name="data_aula" type="date" value={frequenciaForm.data_aula} onChange={handleFrequenciaChange} InputLabelProps={{ shrink: true }} required />
+                    </Grid>
+                    <Grid item xs={12} sm={6} md={4}>
+                      <TextField select fullWidth label="Aulas seguidas" name="quantidade_aulas" value={frequenciaForm.quantidade_aulas} onChange={handleFrequenciaChange} required>
+                        {[1, 2, 3, 4, 5].map((quantidade) => <MenuItem key={quantidade} value={quantidade}>{quantidade}</MenuItem>)}
                       </TextField>
                     </Grid>
                   </Grid>
 
+                  <Typography variant="body2" color="text.secondary" sx={{ mt: 3, mb: 1 }}>
+                    Marque a caixa correspondente quando o aluno faltar. Aulas: {quantidadeAulasChamada}
+                  </Typography>
+                  <TableContainer>
+                    <Table size="small">
+                      <TableHead>
+                        <TableRow>
+                          <TableCell>Aluno</TableCell>
+                          {Array.from({ length: quantidadeAulasChamada }, (_, indice) => (
+                            <TableCell key={indice + 1} align="center">Aula {indice + 1}<br />Falta</TableCell>
+                          ))}
+                        </TableRow>
+                      </TableHead>
+                      <TableBody>
+                        {alunosDaChamada.map((aluno) => (
+                          <TableRow key={aluno.id} hover>
+                            <TableCell>{aluno.nome}</TableCell>
+                            {Array.from({ length: quantidadeAulasChamada }, (_, indice) => {
+                              const numeroAula = indice + 1;
+                              const faltasAluno = frequenciaForm.faltas[aluno.id] || [];
+                              return (
+                                <TableCell key={numeroAula} align="center">
+                                  <Checkbox
+                                    color="error"
+                                    checked={faltasAluno.includes(numeroAula)}
+                                    onChange={() => alternarFalta(aluno.id, numeroAula)}
+                                    inputProps={{ 'aria-label': `Marcar falta de ${aluno.nome} na aula ${numeroAula}` }}
+                                  />
+                                </TableCell>
+                              );
+                            })}
+                          </TableRow>
+                        ))}
+                      </TableBody>
+                    </Table>
+                  </TableContainer>
+                  {!alunosDaChamada.length && <Typography color="text.secondary" sx={{ mt: 2 }}>Selecione uma matéria para carregar os alunos da turma.</Typography>}
+
                   <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2} sx={{ mt: 3 }}>
-                    <Button type="submit" variant="contained" size="large">{frequenciaEmEdicao ? 'Atualizar frequência' : 'Registrar'}</Button>
+                    <Button type="submit" variant="contained" size="large">Salvar chamada</Button>
                     <Button variant="outlined" size="large" onClick={() => { setFrequenciaForm(initialFrequenciaForm); setFrequenciaEmEdicao(null); }}>Limpar</Button>
                   </Stack>
                 </form>
@@ -1359,7 +1522,6 @@ function App() {
                               <Chip label={frequencia.presente ? 'Presente' : 'Ausente'} color={frequencia.presente ? 'success' : 'error'} size="small" />
                             </TableCell>
                             <TableCell align="right">
-                              <Button size="small" onClick={() => editarFrequencia(frequencia)}>Editar</Button>
                               <Button size="small" color="error" onClick={() => excluirFrequencia(frequencia)}>Excluir</Button>
                             </TableCell>
                           </TableRow>

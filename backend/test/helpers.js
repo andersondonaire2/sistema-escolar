@@ -26,7 +26,7 @@ async function request(method, path, body, authOptions = {}) {
     headers: { 'Content-Type': 'application/json' },
   };
   if (authOptions.auth !== false && !path.endsWith('/login')) {
-    requestOptions.headers.Authorization = `Bearer ${await getToken()}`;
+    requestOptions.headers.Authorization = `Bearer ${authOptions.token || await getToken()}`;
   }
   if (body !== undefined) {
     requestOptions.body = JSON.stringify(body);

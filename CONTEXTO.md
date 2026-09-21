@@ -16,11 +16,14 @@ Node.js/Express.
 - A Missão 004 foi implementada com o módulo de frequência: registro de presença/ausência, resumo, classificação e ranking.
 - O QA automatizado cobre as Missões 001 a 004 e autenticação (alunos, turmas, disciplinas, notas, frequências e login) com 42 testes passando.
 - A autenticação das Missões 005/006 foi implementada parcialmente: login admin/professor, JWT e proteção das rotas principais.
-- A Missão 007 foi criada como atividade semanal de auditoria digital.
+- A Missão 007 foi implementada com auditoria digital, consulta restrita a admin e tela de filtros.
+- A Missão 008 foi criada como próxima atividade semanal de indicadores e alertas de segurança.
+- A suíte de QA agora cobre 46 testes, incluindo autenticação e auditoria.
 - A sincronização usa `DB_SYNC_ALTER` para atualizar tabelas existentes sem apagar registros.
 - As listas de alunos, turmas, notas e frequências usam tabela Material UI, busca global e ações de editar/excluir quando relevantes.
 - Existe uma carga SQL de teste em `backend/sql/seed-missao-002.sql` com três turmas e seis alunos.
 - A estrutura do backend agora inclui `Nota` e `Frequencia`, com associações com `Aluno`.
+- A frequência agora suporta `disciplina_id`, `plano_aula`, `quantidade_aulas` e `numero_aula`; a chamada em lote grava uma linha por aluno e por aula.
 - O frontend exibe abas de boletim e frequência com formulário, listas, resumo e ranking.
 
 ## Estrutura relevante
@@ -31,6 +34,7 @@ Node.js/Express.
 - Módulo de turma: `backend/src/routes/turmas/`, `backend/src/controllers/turmaController.js` e `backend/src/models/Turma.js`
 - Módulo de boletim: `backend/src/routes/boletim/`, `backend/src/controllers/notaController.js` e `backend/src/models/Nota.js`
 - Módulo de frequência: `backend/src/routes/frequencias/`, `backend/src/controllers/frequenciaController.js` e `backend/src/models/Frequencia.js`
+- Módulo de auditoria: `backend/src/routes/auditoria/`, `backend/src/controllers/auditoriaController.js` e `backend/src/models/Auditoria.js`
 - Frontend: `frontend/src/App.jsx` e `frontend/src/styles.css`
 
 ## Decisões importantes
@@ -51,7 +55,8 @@ Node.js/Express.
 - Confirmar visualmente no navegador o fluxo completo da Missão 004 (chamada, resumo e ranking).
 - Resolver pendências anteriores das Missões 002/003 pendentes de verificação no navegador.
 - A proteção de rotas exige JWT, mas ainda falta finalizar a autorização por perfil e a tela de chamada exclusiva da disciplina do professor.
-- A Missão 007 (`🎯 MISSÃO 007 - OPERAÇÃO AUDITORIA DIGITAL.txt`) está definida, mas o módulo de auditoria ainda não foi implementado.
+- A tela de frequência foi convertida em chamada: matéria do professor logado, plano de aula, data, aulas consecutivas e checkboxes de falta por aluno/aula.
+- A Missão 007 foi concluída; a Missão 008 (`🎯 MISSÃO 008 - OPERAÇÃO PAINEL DE CONFIANÇA.txt`) aguarda implementação.
 - Manter `DB_SYNC_FORCE=false` ao testar dados persistidos.
 - Ajustar o vínculo de alunos por turma com operação de desvínculo e revínculo em fluxo contínuo.
 - Um front de "chamada por turma/matéria" (com plano de aula, quantidade de aulas e checkbox de falta por aluno) foi iniciado em edição, mas as alterações não commitadas foram descartadas via `git restore` a pedido do usuário; o repositório está limpo, alinhado ao commit `9ad7ee7` (Missão 4). Essa evolução da frequência é a base da Missão 5 e fica para retomar quando for pedida.
@@ -61,9 +66,9 @@ Node.js/Express.
 
 1. Ler este `CONTEXTO.md` e o `README.md`.
 2. Garantir o backend rodando: `npm.cmd run dev` (ou `node src/server.js`) na pasta `backend`; conferir `http://localhost:3000` respondendo.
-3. Rodar a suíte de QA completa: na pasta `backend`, `npm.cmd test` (ou `node --test`). Esperado: 37 testes passando.
+3. Rodar a suíte de QA completa: na pasta `backend`, `npm.cmd test` (ou `node --test`). Esperado: 46 testes passando.
 4. Verificar resíduos de testes no banco (`_QA_`/`@qa.com`) e limpar se houver.
-5. Finalizar a autorização por perfil e implementar a Missão 007.
+5. Implementar os indicadores, últimos acessos e alertas definidos na Missão 008.
 
 ## Histórico de missões
 
@@ -97,13 +102,24 @@ Node.js/Express.
   - QA automatizado criado em `backend/test/` cobrindo as Missões 001-004; 37 testes passando via `npm.cmd test`.
   - Corrigido o script de teste em `backend/package.json` para `node --test` (a forma antiga `node --test test/` quebrava no Windows/Node 24).
 
+- Missão 007: auditoria digital implementada em 2026-09-21.
+  - Criado model `Auditoria`, tabela com índices por data, operação e recurso.
+  - Registrados login aceito/recusado e criação, edição e exclusão de notas/frequências.
+  - Criada consulta `GET /auditoria` com filtros por usuário, operação, recurso e período.
+  - Acesso restrito a admin; professor recebe 403 e ausência de token recebe 401.
+  - Criada tela administrativa de auditoria e testes de segurança/segredos.
+  - 46 testes passaram e o build frontend foi concluído.
+
 ## Última atualização
 
 - Data: 2026-08-29
 - Ação: Descartadas (via `git restore`) as alterações não commitadas que ampliavam a tela de frequência (chamada por turma/matéria com plano de aula e checkbox de falta), voltando o repositório ao estado limpo do commit `9ad7ee7`. Em seguida, o texto do arquivo `🎯 MISSÃO 005 - OPERAÇÃO ESCOLA SEGURA.txt` foi reescrito com o escopo real da Missão 5: login do professor + tela de chamada exclusiva da disciplina dele, com um checkbox de falta por aula lançada (quando a quantidade de aulas for maior que 1, um checkbox por aula, não apenas um por sessão).
 - Ação: estabilizado o banco local, validado o login admin/professor e adicionada a proteção JWT às rotas da API. Criada a especificação da Missão 007.
 - Validação adicional: helper de QA adaptado para enviar JWT nas rotas protegidas; 42 testes passaram. Corrigida a listagem de notas para ordenar por `id`, pois timestamps estão desativados.
-- Próximo passo: finalizar autorização por perfil/chamada do professor e implementar a auditoria definida na Missão 007.
+- Corrigido o fluxo do frontend: erros de login agora aparecem na tela, tokens expirados são invalidados e o carregamento do painel aguarda o token recém-recebido. Build do frontend e testes HTTP de autenticação validados.
+- Criado e executado `backend/sql/seed-demo.js`: 3 turmas demo, 30 alunos, 9 disciplinas, 9 professores, 180 notas e 150 frequências. Segunda execução confirmou idempotência; login `demo_prof_1` validado.
+- Implementada a chamada em lote em `/frequencias/chamada`; validação confirmou 20 registros para 10 alunos em 2 aulas e 3 faltas selecionadas. Suíte backend: 42 testes passando; build frontend concluído.
+- Próximo passo: implementar os indicadores, últimos acessos e alertas definidos na Missão 008.
 
 ## Como atualizar
 

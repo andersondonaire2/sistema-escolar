@@ -402,3 +402,57 @@ test.describe('Módulo AUTENTICAÇÃO', () => {
     assert.ok(Array.isArray(r.data));
   });
 });
+
+// ---------------------------------------------------------------------------
+// AUDITORIA DIGITAL
+// ---------------------------------------------------------------------------
+test.describe('Módulo AUDITORIA', () => {
+  test('GET /auditoria exige token (401)', async () => {
+    const r = await request('GET', '/auditoria', undefined, { auth: false });
+    assert.equal(r.status, 401);
+  });
+
+  test('GET /auditoria bloqueia professor (403)', async () => {
+    const login = await request('POST', '/professores/login', { usuario: 'maria', senha: '123456' });
+    assert.equal(login.status, 200);
+    const r = await request('GET', '/auditoria', undefined, { token: login.data.token });
+    assert.equal(r.status, 403);
+  });
+
+  test('login válido e recusado geram eventos sem segredos', async () => {
+    const aceito = await request('POST', '/login', { email: 'admin@escola.com', senha: '123456' });
+    assert.equal(aceito.status, 200);
+    const recusado = await request('POST', '/login', { email: 'admin@escola.com', senha: 'senha_qa_que_nao_deve_aparecer' });
+    assert.equal(recusado.status, 401);
+
+    const r = await request('GET', '/auditoria?usuario=Administrador', undefined, { token: aceito.data.token });
+    assert.equal(r.status, 200, JSON.stringify(r.data));
+    assert.ok(r.data.some((evento) => evento.operacao === 'LOGIN_SUCESSO'));
+    assert.ok(r.data.some((evento) => evento.operacao === 'LOGIN_RECUSADO'));
+    assert.ok(!JSON.stringify(r.data).includes('senha_qa_que_nao_deve_aparecer'));
+    assert.ok(!JSON.stringify(r.data).includes(aceito.data.token));
+  });
+
+  test('criação de nota e exclusão de frequência geram eventos filtráveis', async () => {
+    const admin = await request('POST', '/login', { email: 'admin@escola.com', senha: '123456' });
+    assert.equal(admin.status, 200);
+    const aluno = await request('POST', '/alunos', { nome: U('AudAluno'), email: `${U('aud')}@qa.com` });
+    assert.equal(aluno.status, 201);
+    const nota = await request('POST', '/notas', { aluno_id: aluno.data.id, disciplina: 'Auditoria', bimestre: '1º', nota: 8 });
+    assert.equal(nota.status, 201);
+    const frequencia = await request('POST', '/frequencias', { aluno_id: aluno.data.id, data_aula: `2026-09-${String((Date.now() % 20) + 1).padStart(2, '0')}`, presente: true });
+    assert.equal(frequencia.status, 201);
+    const excluida = await request('DELETE', `/frequencias/${frequencia.data.id}`);
+    assert.equal(excluida.status, 204);
+
+    const notas = await request('GET', '/auditoria?recurso=NOTA&operacao=CRIACAO', undefined, { token: admin.data.token });
+    assert.equal(notas.status, 200);
+    assert.ok(notas.data.some((evento) => Number(evento.recurso_id) === Number(nota.data.id)));
+    const frequencias = await request('GET', '/auditoria?recurso=FREQUENCIA&operacao=EXCLUSAO', undefined, { token: admin.data.token });
+    assert.equal(frequencias.status, 200);
+    assert.ok(frequencias.data.some((evento) => Number(evento.recurso_id) === Number(frequencia.data.id)));
+
+    await request('DELETE', `/notas/${nota.data.id}`);
+    await request('DELETE', `/alunos/${aluno.data.id}`);
+  });
+});

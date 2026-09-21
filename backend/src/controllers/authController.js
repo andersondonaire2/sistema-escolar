@@ -4,6 +4,7 @@ import Usuario from '../models/Usuario.js';
 import Professor from '../models/Professor.js';
 import Disciplina from '../models/Disciplina.js';
 import Turma from '../models/Turma.js';
+import { registrarAuditoria } from './auditoriaController.js';
 
 const JWT_SECRET = process.env.JWT_SECRET || 'escola-secret-key';
 
@@ -30,15 +31,18 @@ async function login(req, res) {
   try {
     const usuario = await Usuario.findOne({ where: { email } });
     if (!usuario) {
+      void registrarAuditoria({ usuario_nome: email, perfil: 'admin', operacao: 'LOGIN_RECUSADO', recurso: 'AUTENTICACAO', detalhes: { motivo: 'usuario_nao_encontrado' } });
       return res.status(401).json({ erro: 'Credenciais inválidas.' });
     }
 
     const senhaValida = await bcrypt.compare(senha, usuario.senha);
     if (!senhaValida) {
+      void registrarAuditoria({ usuario_id: usuario.id, usuario_nome: usuario.nome, perfil: usuario.perfil, operacao: 'LOGIN_RECUSADO', recurso: 'AUTENTICACAO', detalhes: { motivo: 'senha_invalida' } });
       return res.status(401).json({ erro: 'Credenciais inválidas.' });
     }
 
     const token = gerarToken(usuario);
+    void registrarAuditoria({ usuario_id: usuario.id, usuario_nome: usuario.nome, perfil: usuario.perfil, operacao: 'LOGIN_SUCESSO', recurso: 'AUTENTICACAO' });
     return res.status(200).json({
       token,
       usuario: {
@@ -67,11 +71,13 @@ async function loginProfessor(req, res) {
     });
 
     if (!professor) {
+      void registrarAuditoria({ usuario_nome: usuario, perfil: 'professor', operacao: 'LOGIN_RECUSADO', recurso: 'AUTENTICACAO', detalhes: { motivo: 'usuario_nao_encontrado' } });
       return res.status(401).json({ erro: 'Professor não encontrado.' });
     }
 
     const senhaValida = await bcrypt.compare(senha, professor.senha);
     if (!senhaValida) {
+      void registrarAuditoria({ usuario_id: professor.id, usuario_nome: professor.nome, perfil: 'professor', operacao: 'LOGIN_RECUSADO', recurso: 'AUTENTICACAO', detalhes: { motivo: 'senha_invalida' } });
       return res.status(401).json({ erro: 'Senha incorreta.' });
     }
 
@@ -81,6 +87,7 @@ async function loginProfessor(req, res) {
       usuario: professor.usuario,
       perfil: 'professor',
     }, JWT_SECRET, { expiresIn: '8h' });
+    void registrarAuditoria({ usuario_id: professor.id, usuario_nome: professor.nome, perfil: 'professor', operacao: 'LOGIN_SUCESSO', recurso: 'AUTENTICACAO' });
 
     return res.status(200).json({
       token,

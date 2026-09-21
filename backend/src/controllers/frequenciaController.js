@@ -3,6 +3,7 @@ import Frequencia from '../models/Frequencia.js';
 import Aluno from '../models/Aluno.js';
 import Disciplina from '../models/Disciplina.js';
 import Professor from '../models/Professor.js';
+import { registrarAuditoria } from './auditoriaController.js';
 
 async function listarFrequencias(req, res) {
   try {
@@ -56,6 +57,7 @@ async function cadastrarChamada(req, res) {
     }
 
     await Frequencia.bulkCreate(registros);
+    void registrarAuditoria({ usuario_id: req.usuario?.id, usuario_nome: req.usuario?.nome, perfil: req.usuario?.perfil, operacao: 'CRIACAO', recurso: 'FREQUENCIA', recurso_id: disciplina.id, detalhes: { disciplina_id: disciplina.id, data_aula, quantidade_aulas: quantidade, registros: registros.length } });
     return res.status(201).json({ disciplina, quantidade_aulas: quantidade, registros: registros.length });
   } catch (erro) {
     if (erro.name === 'SequelizeUniqueConstraintError') {
@@ -97,6 +99,7 @@ async function cadastrarFrequencia(req, res) {
       presente: presenteBool,
     });
 
+    void registrarAuditoria({ usuario_id: req.usuario?.id, usuario_nome: req.usuario?.nome, perfil: req.usuario?.perfil, operacao: 'CRIACAO', recurso: 'FREQUENCIA', recurso_id: novaFrequencia.id, detalhes: { aluno_id: novaFrequencia.aluno_id, data_aula: novaFrequencia.data_aula } });
     res.status(201).json(novaFrequencia);
   } catch (erro) {
     res.status(400).json({ erro: `Erro ao salvar frequência: ${erro.message}` });
@@ -139,6 +142,7 @@ async function editarFrequencia(req, res) {
       presente: presente !== undefined ? Boolean(presente) : frequencia.presente,
     });
 
+    void registrarAuditoria({ usuario_id: req.usuario?.id, usuario_nome: req.usuario?.nome, perfil: req.usuario?.perfil, operacao: 'EDICAO', recurso: 'FREQUENCIA', recurso_id: frequencia.id, detalhes: { aluno_id: frequencia.aluno_id, data_aula: frequencia.data_aula } });
     res.status(200).json(frequencia);
   } catch (erro) {
     res.status(400).json({ erro: `Erro ao editar frequência: ${erro.message}` });
@@ -151,6 +155,7 @@ async function excluirFrequencia(req, res) {
     if (!frequencia) return res.status(404).json({ erro: 'Registro de frequência não encontrado.' });
 
     await frequencia.destroy();
+    void registrarAuditoria({ usuario_id: req.usuario?.id, usuario_nome: req.usuario?.nome, perfil: req.usuario?.perfil, operacao: 'EXCLUSAO', recurso: 'FREQUENCIA', recurso_id: frequencia.id, detalhes: { aluno_id: frequencia.aluno_id, data_aula: frequencia.data_aula } });
     res.status(204).send();
   } catch (erro) {
     res.status(400).json({ erro: `Erro ao excluir frequência: ${erro.message}` });

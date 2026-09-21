@@ -1,5 +1,6 @@
 import Nota from '../models/Nota.js';
 import Aluno from '../models/Aluno.js';
+import { registrarAuditoria } from './auditoriaController.js';
 
 async function listarNotas(req, res) {
   try {
@@ -38,6 +39,7 @@ async function cadastrarNota(req, res) {
       nota: valorNota,
     });
 
+    void registrarAuditoria({ usuario_id: req.usuario?.id, usuario_nome: req.usuario?.nome, perfil: req.usuario?.perfil, operacao: 'CRIACAO', recurso: 'NOTA', recurso_id: novaNota.id, detalhes: { aluno_id: novaNota.aluno_id, disciplina: novaNota.disciplina, bimestre: novaNota.bimestre } });
     res.status(201).json(novaNota);
   } catch (erro) {
     res.status(400).json({ erro: `Erro ao salvar nota: ${erro.message}` });
@@ -74,6 +76,7 @@ async function editarNota(req, res) {
       nota: valorNota,
     });
 
+    void registrarAuditoria({ usuario_id: req.usuario?.id, usuario_nome: req.usuario?.nome, perfil: req.usuario?.perfil, operacao: 'EDICAO', recurso: 'NOTA', recurso_id: notaAtual.id, detalhes: { aluno_id: notaAtual.aluno_id, disciplina: notaAtual.disciplina, bimestre: notaAtual.bimestre } });
     res.status(200).json(notaAtual);
   } catch (erro) {
     res.status(400).json({ erro: `Erro ao editar nota: ${erro.message}` });
@@ -86,6 +89,7 @@ async function excluirNota(req, res) {
     if (!nota) return res.status(404).json({ erro: 'Nota não encontrada.' });
 
     await nota.destroy();
+    void registrarAuditoria({ usuario_id: req.usuario?.id, usuario_nome: req.usuario?.nome, perfil: req.usuario?.perfil, operacao: 'EXCLUSAO', recurso: 'NOTA', recurso_id: nota.id, detalhes: { aluno_id: nota.aluno_id, disciplina: nota.disciplina, bimestre: nota.bimestre } });
     res.status(204).send();
   } catch (erro) {
     res.status(400).json({ erro: `Erro ao excluir nota: ${erro.message}` });

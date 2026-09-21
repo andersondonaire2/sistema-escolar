@@ -8,6 +8,7 @@ import Nota from './models/Nota.js';
 import Frequencia from './models/Frequencia.js';
 import Usuario from './models/Usuario.js';
 import Professor from './models/Professor.js';
+import Auditoria from './models/Auditoria.js';
 import authController from './controllers/authController.js';
 import routes from './routes/index.js';
 
@@ -25,6 +26,7 @@ Aluno.hasMany(Nota, { foreignKey: 'aluno_id', as: 'notas' });
 Nota.belongsTo(Aluno, { foreignKey: 'aluno_id', as: 'aluno' });
 Aluno.hasMany(Frequencia, { foreignKey: 'aluno_id', as: 'frequencias' });
 Frequencia.belongsTo(Aluno, { foreignKey: 'aluno_id', as: 'aluno' });
+Auditoria.belongsTo(Usuario, { foreignKey: 'usuario_id', as: 'usuario' });
 
 // Middlewares
 app.use(cors());
